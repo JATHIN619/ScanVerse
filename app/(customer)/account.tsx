@@ -1,17 +1,23 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
+import { useStoreStore } from '../../store/storeStore';
 import { theme } from '../../constants/theme';
 
 export default function AccountScreen() {
   const user = useAuthStore(state => state.profile);
+  const activeStore = useStoreStore(state => state.activeStore);
+  const clearActiveStore = useStoreStore(state => state.clearActiveStore);
+  
   const { mode, toggleTheme } = useThemeStore();
   const colors = theme.colors[mode];
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    useAuthStore.getState().clearAuth(); // Explicitly clear local state
+    useAuthStore.getState().clearAuth();
+    clearActiveStore(); // Wipe the store choice on logout
   }
 
   return (
@@ -24,11 +30,24 @@ export default function AccountScreen() {
         <Text style={{ color: colors.textSecondary, textTransform: 'capitalize' }}>Role: {user?.role}</Text>
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={{ color: colors.textSecondary, marginBottom: 4 }}>Shopping at:</Text>
+        <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>
+          {activeStore ? activeStore.name : 'No store selected'}
+        </Text>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: colors.secondary, height: 40 }]} 
+          onPress={() => router.push('/store-selection')}
+        >
+          <Text style={styles.buttonText}>Change Store</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity 
         style={[styles.button, { backgroundColor: colors.primary, marginBottom: 16 }]} 
         onPress={toggleTheme}
       >
-        <Text style={styles.buttonText}>Toggle Theme (Current: {mode})</Text>
+        <Text style={styles.buttonText}>Toggle Theme</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 

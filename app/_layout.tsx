@@ -2,6 +2,7 @@ import { Stack, router, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuthStore } from '../store/authStore';
+import { useStoreStore } from '../store/storeStore';
 
 export default function RootLayout() {
   const { session, setSession, setProfile, clearAuth } = useAuthStore();
@@ -13,7 +14,6 @@ export default function RootLayout() {
       setSession(currentSession);
       
       if (currentSession?.user) {
-        // FIX: Use maybeSingle() instead of single() to prevent crash on 0 rows
         const { data, error } = await supabase
           .from('users')
           .select('*')
@@ -41,17 +41,23 @@ export default function RootLayout() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const profile = useAuthStore.getState().profile;
+    const activeStore = useStoreStore.getState().activeStore;
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (session && profile && inAuthGroup) {
       if (profile.role === 'customer') {
-        router.replace('/(customer)/home');
+        // If customer has a store selected, go to home. Otherwise, force selection.
+        if (activeStore) {
+          router.replace('/(customer)/home');
+        } else {
+          router.replace('/store-selection');
+        }
       } else if (profile.role === 'owner') {
         router.replace('/(owner)/dashboard');
       }
     }
-  }, [session, isInitializing, segments, useAuthStore.getState().profile]);
+  }, [session, isInitializing, segments, useAuthStore.getState().profile, useStoreStore.getState().activeStore]);
 
   if (isInitializing) return null;
 
@@ -59,6 +65,8 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(customer)" />
+      <Stack.Screen name="(owner)" />
+      <Stack.Screen name="store-selection" />
     </Stack>
   );
 }
