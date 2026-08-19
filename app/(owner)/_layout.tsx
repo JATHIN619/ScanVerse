@@ -60,7 +60,7 @@ export default function OwnerTabLayout() {
         options={{
           title: '',
           tabBarButton: (props) => (
-            <CustomScanButton onPress={() => console.log('Scan to add product')} />
+            <CustomScanButton onPress={() => router.push('/(owner)/add-product?scan=true')} />
           ),
         }}
       />
@@ -81,6 +81,10 @@ export default function OwnerTabLayout() {
       {/* Hidden Screens */}
       <Tabs.Screen 
         name="register-store" 
+        options={{ href: null, tabBarStyle: { display: 'none' } }} 
+      />
+      <Tabs.Screen 
+        name="add-product" 
         options={{ href: null, tabBarStyle: { display: 'none' } }} 
       />
     </Tabs>
