@@ -27,28 +27,18 @@ export default function CheckoutScreen() {
     setStatus('Generating Secure Order...');
 
     try {
-      // FIX: Explicitly fetch the session token to bypass the AsyncStorage bug
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('You must be logged in to checkout.');
-      }
+      if (!session) throw new Error('You must be logged in to checkout.');
 
-      // 1. Call our T14 Edge Function securely with the explicit Auth header
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
         body: { storeId: activeStore.id },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+        headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
-      if (orderError || !orderData) {
-        throw new Error(orderError?.message || 'Failed to create order on server');
-      }
+      if (orderError || !orderData) throw new Error(orderError?.message || 'Failed to create order on server');
 
       setStatus('Opening Payment Gateway...');
 
-      // 2. Set up Razorpay options
       const options = {
         description: `ScanVerse Order at ${activeStore.name}`,
         image: 'https://reactnative.dev/img/tiny_logo.png',
@@ -57,15 +47,10 @@ export default function CheckoutScreen() {
         amount: orderData.amount,
         name: activeStore.name,
         order_id: orderData.orderId,
-        prefill: {
-          email: user.email,
-          contact: '9999999999', // Placeholder for test mode
-          name: user.name
-        },
+        prefill: { email: user.email, contact: '9999999999', name: user.name },
         theme: { color: colors.primary }
       };
 
-      // 3. Open Razorpay Sheet (with Expo Go Fallback Logic)
       try {
         const data = await RazorpayCheckout.open(options);
         await handlePaymentSuccess(data.razorpay_payment_id, orderData.orderId, data.razorpay_signature);
@@ -74,10 +59,7 @@ export default function CheckoutScreen() {
         Alert.alert(
           "Expo Go Detected", 
           "Razorpay native UI cannot render in Expo Go. Simulating a successful payment for testing purposes.", 
-          [{ 
-            text: "Simulate Success", 
-            onPress: () => handlePaymentSuccess("sim_pay_123", orderData.orderId, "sim_sig_123") 
-          }]
+          [{ text: "Simulate Success", onPress: () => handlePaymentSuccess("sim_pay_123", orderData.orderId, "sim_sig_123") }]
         );
       }
     } catch (err: any) {
@@ -87,13 +69,38 @@ export default function CheckoutScreen() {
     }
   }
 
+  // FIX: Added the Edge Function call to verify the signature, create the order, and deduct stock
   async function handlePaymentSuccess(paymentId: string, orderId: string, signature: string) {
-    setStatus('Verifying Payment...');
-    console.log(`Payment Verified: ${paymentId}`);
+    setStatus('Verifying Payment & Updating Stock...');
     
-    Alert.alert("Payment Successful", `Your order has been placed successfully.`);
-    clearCart();
-    router.replace('/(customer)/home');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: { 
+          paymentId, 
+          orderId, 
+          signature, 
+          storeId: activeStore?.id,
+          items,
+          totalAmount: totalPrice
+        },
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+
+      if (verifyError || verifyData?.error) {
+        throw new Error(verifyError?.message || verifyData?.error || 'Verification failed');
+      }
+      
+      Alert.alert("Payment Successful", `Your order has been placed and stock has been updated.`);
+      clearCart();
+      router.replace('/(customer)/home');
+
+    } catch (err: any) {
+      Alert.alert("Verification Failed", err.message);
+      setLoading(false);
+      setStatus('Failed');
+    }
   }
 
   return (
