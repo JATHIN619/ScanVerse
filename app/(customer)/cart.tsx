@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
 import { useStoreStore } from '../../store/storeStore';
 import { useCartStore } from '../../store/cartStore';
@@ -71,7 +72,7 @@ export default function CartScreen() {
             </View>
             <TouchableOpacity 
               style={[styles.payBtn, { backgroundColor: colors.primary }]}
-              onPress={() => console.log('Proceed to Checkout')}
+              onPress={() => router.push('/(customer)/checkout')}
             >
               <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Pay Now</Text>
             </TouchableOpacity>

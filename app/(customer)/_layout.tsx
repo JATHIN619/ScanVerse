@@ -78,6 +78,12 @@ export default function CustomerTabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />,
         }}
       />
+      
+      {/* Hidden Screens */}
+      <Tabs.Screen 
+        name="checkout" 
+        options={{ href: null, tabBarStyle: { display: 'none' } }} 
+      />
     </Tabs>
   );
 }
