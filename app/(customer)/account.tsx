@@ -49,9 +49,11 @@ export default function AccountScreen() {
         <Text style={[styles.actionText, { color: colors.textPrimary }]}>My Orders / Receipts</Text>
       </TouchableOpacity>
 
-      {/* NEW: Clean Switch layout for Dark Mode */}
+      {/* Dynamic Theme Label */}
       <View style={[styles.switchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.actionText, { color: colors.textPrimary }]}>Dark Mode</Text>
+        <Text style={[styles.actionText, { color: colors.textPrimary }]}>
+          {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </Text>
         <Switch
           value={mode === 'dark'}
           onValueChange={toggleTheme}

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -11,7 +11,7 @@ export default function OwnerAccountScreen() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    useAuthStore.getState().clearAuth(); // Explicitly clear local state
+    useAuthStore.getState().clearAuth(); 
   }
 
   return (
@@ -24,12 +24,17 @@ export default function OwnerAccountScreen() {
         <Text style={{ color: colors.textSecondary, textTransform: 'capitalize' }}>Role: {user?.role}</Text>
       </View>
 
-      <TouchableOpacity 
-        style={[styles.button, { backgroundColor: colors.primary, marginBottom: 16 }]} 
-        onPress={toggleTheme}
-      >
-        <Text style={styles.buttonText}>Toggle Theme (Current: {mode})</Text>
-      </TouchableOpacity>
+      <View style={[styles.switchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.actionText, { color: colors.textPrimary }]}>
+          {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </Text>
+        <Switch
+          value={mode === 'dark'}
+          onValueChange={toggleTheme}
+          trackColor={{ false: '#D1D5DB', true: colors.primary }}
+          thumbColor={'#FFFFFF'}
+        />
+      </View>
 
       <TouchableOpacity 
         style={[styles.button, { backgroundColor: colors.error }]} 
@@ -47,4 +52,6 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 24 },
   button: { height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  actionText: { fontSize: 16, fontWeight: 'bold' },
+  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 56, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, marginBottom: 24 }
 });

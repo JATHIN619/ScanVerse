@@ -1,25 +1,7 @@
-import { Tabs, router } from 'expo-router';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../store/themeStore';
 import { theme } from '../../constants/theme';
-
-function CustomScanButton({ onPress }: { onPress: () => void }) {
-  const mode = useThemeStore((state) => state.mode);
-  const colors = theme.colors[mode];
-
-  return (
-    <TouchableOpacity 
-      activeOpacity={0.8} 
-      onPress={onPress} 
-      style={[styles.scanButtonContainer, { backgroundColor: colors.background }]}
-    >
-      <View style={[styles.scanButton, { backgroundColor: colors.primary }]}>
-        <Ionicons name="scan" size={28} color="#FFF" />
-      </View>
-    </TouchableOpacity>
-  );
-}
 
 export default function OwnerTabLayout() {
   const mode = useThemeStore((state) => state.mode);
@@ -56,15 +38,6 @@ export default function OwnerTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="scan"
-        options={{
-          title: '',
-          tabBarButton: (props) => (
-            <CustomScanButton onPress={() => router.push('/(owner)/add-product?scan=true')} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="alerts"
         options={{
           title: 'Alerts',
@@ -78,38 +51,10 @@ export default function OwnerTabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />,
         }}
       />
+      
       {/* Hidden Screens */}
-      <Tabs.Screen 
-        name="register-store" 
-        options={{ href: null, tabBarStyle: { display: 'none' } }} 
-      />
-      <Tabs.Screen 
-        name="add-product" 
-        options={{ href: null, tabBarStyle: { display: 'none' } }} 
-      />
+      <Tabs.Screen name="add-product" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="register-store" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  scanButtonContainer: {
-    top: -20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-  },
-  scanButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-});
