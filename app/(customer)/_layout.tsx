@@ -84,6 +84,10 @@ export default function CustomerTabLayout() {
         name="checkout" 
         options={{ href: null, tabBarStyle: { display: 'none' } }} 
       />
+      <Tabs.Screen 
+        name="orders" 
+        options={{ href: null, tabBarStyle: { display: 'none' } }} 
+      />
     </Tabs>
   );
 }

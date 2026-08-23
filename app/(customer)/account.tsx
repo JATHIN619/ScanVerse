@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -17,7 +17,7 @@ export default function AccountScreen() {
   async function handleLogout() {
     await supabase.auth.signOut();
     useAuthStore.getState().clearAuth();
-    clearActiveStore(); // Wipe the store choice on logout
+    clearActiveStore();
   }
 
   return (
@@ -27,7 +27,6 @@ export default function AccountScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: 'bold' }}>{user?.name}</Text>
         <Text style={{ color: colors.textSecondary, marginBottom: 10 }}>{user?.email}</Text>
-        <Text style={{ color: colors.textSecondary, textTransform: 'capitalize' }}>Role: {user?.role}</Text>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -44,11 +43,22 @@ export default function AccountScreen() {
       </View>
 
       <TouchableOpacity 
-        style={[styles.button, { backgroundColor: colors.primary, marginBottom: 16 }]} 
-        onPress={toggleTheme}
+        style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+        onPress={() => router.push('/(customer)/orders')}
       >
-        <Text style={styles.buttonText}>Toggle Theme</Text>
+        <Text style={[styles.actionText, { color: colors.textPrimary }]}>My Orders / Receipts</Text>
       </TouchableOpacity>
+
+      {/* NEW: Clean Switch layout for Dark Mode */}
+      <View style={[styles.switchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.actionText, { color: colors.textPrimary }]}>Dark Mode</Text>
+        <Switch
+          value={mode === 'dark'}
+          onValueChange={toggleTheme}
+          trackColor={{ false: '#D1D5DB', true: colors.primary }}
+          thumbColor={'#FFFFFF'}
+        />
+      </View>
 
       <TouchableOpacity 
         style={[styles.button, { backgroundColor: colors.error }]} 
@@ -63,7 +73,10 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, paddingTop: 60 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
-  card: { borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 24 },
+  card: { borderWidth: 1, borderRadius: 12, padding: 16, marginBottom: 16 },
   button: { height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  actionButton: { height: 56, borderWidth: 1, borderRadius: 12, justifyContent: 'center', paddingHorizontal: 16, marginBottom: 12 },
+  actionText: { fontSize: 16, fontWeight: 'bold' },
+  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 56, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, marginBottom: 24 }
 });
