@@ -44,6 +44,16 @@ export default function OwnerTabLayout() {
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={24} color={color} />,
         }}
       />
+      
+      {/* Explicitly placing Orders here with a Receipt icon */}
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={24} color={color} />,
+        }}
+      />
+      
       <Tabs.Screen
         name="account"
         options={{
@@ -55,6 +65,8 @@ export default function OwnerTabLayout() {
       {/* Hidden Screens */}
       <Tabs.Screen name="add-product" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       <Tabs.Screen name="register-store" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="deals" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="abandoned" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );
 }

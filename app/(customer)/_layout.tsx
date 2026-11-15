@@ -1,7 +1,10 @@
+import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '../../store/themeStore';
+import { useAuthStore } from '../../store/authStore';
+import { useWishlistStore } from '../../store/wishlistStore';
 import { theme } from '../../constants/theme';
 
 function CustomScanButton({ onPress }: { onPress: () => void }) {
@@ -24,6 +27,13 @@ function CustomScanButton({ onPress }: { onPress: () => void }) {
 export default function CustomerTabLayout() {
   const mode = useThemeStore((state) => state.mode);
   const colors = theme.colors[mode];
+  
+  const user = useAuthStore((state) => state.profile);
+  const fetchWishlist = useWishlistStore((state) => state.fetchWishlist);
+
+  useEffect(() => {
+    if (user?.id) fetchWishlist(user.id);
+  }, [user?.id]);
 
   return (
     <Tabs
@@ -41,76 +51,22 @@ export default function CustomerTabLayout() {
           paddingBottom: 8,
         },
       }}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="wishlist"
-        options={{
-          title: 'Wishlist',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{
-          title: '',
-          tabBarButton: (props) => (
-            <CustomScanButton onPress={() => router.push('/(customer)/scan')} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: 'Cart',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="account"
-        options={{
-          title: 'Account',
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />,
-        }}
-      />
+      <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} /> }} />
+      <Tabs.Screen name="wishlist" options={{ title: 'Wishlist', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} /> }} />
+      <Tabs.Screen name="scan" options={{ title: '', tabBarButton: (props) => <CustomScanButton onPress={() => router.push('/(customer)/scan')} /> }} />
+      <Tabs.Screen name="cart" options={{ title: 'Cart', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'cart' : 'cart-outline'} size={24} color={color} /> }} />
+      <Tabs.Screen name="account" options={{ title: 'Account', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} /> }} />
       
-      {/* Hidden Screens */}
-      <Tabs.Screen 
-        name="checkout" 
-        options={{ href: null, tabBarStyle: { display: 'none' } }} 
-      />
-      <Tabs.Screen 
-        name="orders" 
-        options={{ href: null, tabBarStyle: { display: 'none' } }} 
-      />
+      {/* EXPLICITLY HIDDEN SCREENS */}
+      <Tabs.Screen name="checkout" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="history" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="receipt" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="orders" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  scanButtonContainer: {
-    top: -20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-  },
-  scanButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
+  scanButtonContainer: { top: -20, justifyContent: 'center', alignItems: 'center', width: 62, height: 62, borderRadius: 31 },
+  scanButton: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 }
 });

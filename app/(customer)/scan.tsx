@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useFocusEffect } from 'expo-router';
@@ -9,7 +9,6 @@ import { useCartStore } from '../../store/cartStore';
 import { useThemeStore } from '../../store/themeStore';
 import { theme } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback } from 'react';
 
 export default function CustomerScan() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -29,6 +28,26 @@ export default function CustomerScan() {
       setScanning(true);
     }, [])
   );
+
+  // Analytics tracking function
+  const logScanEvent = async (productId: string, storeId?: string) => {
+    try {
+      const { error } = await supabase
+        .from('scan_analytics')
+        .insert([
+          { 
+            product_id: productId, 
+            store_id: storeId || null 
+          }
+        ]);
+        
+      if (error) {
+        console.error("Failed to log scan analytics:", error);
+      }
+    } catch (err) {
+      console.error("Analytics execution error:", err);
+    }
+  };
 
   async function handleBarcodeScanned({ data }: { data: string }) {
     if (!scanning || !activeStore || !user) return;
@@ -53,6 +72,9 @@ export default function CustomerScan() {
       );
       return;
     }
+
+    // Silently log the scan event for analytics (before stock checks to track true interest)
+    logScanEvent(product.id, activeStore.id);
 
     if (product.stock_qty <= 0) {
       Alert.alert('Out of Stock', 'This item is currently out of stock.', [{ text: 'OK', onPress: () => setScanning(true) }]);

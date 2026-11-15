@@ -14,7 +14,7 @@ export default function CheckoutScreen() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('Idle');
   
-  const { items, totalPrice, clearCart } = useCartStore();
+  const { items, totalPrice, checkoutCart } = useCartStore();
   const user = useAuthStore(state => state.profile);
   const activeStore = useStoreStore(state => state.activeStore);
   
@@ -69,7 +69,6 @@ export default function CheckoutScreen() {
     }
   }
 
-  // FIX: Added the Edge Function call to verify the signature, create the order, and deduct stock
   async function handlePaymentSuccess(paymentId: string, orderId: string, signature: string) {
     setStatus('Verifying Payment & Updating Stock...');
     
@@ -92,9 +91,17 @@ export default function CheckoutScreen() {
         throw new Error(verifyError?.message || verifyData?.error || 'Verification failed');
       }
       
-      Alert.alert("Payment Successful", `Your order has been placed and stock has been updated.`);
-      clearCart();
-      router.replace('/(customer)/home');
+      // Capture data before clearing cart
+      const finalItems = JSON.stringify(items);
+      const finalTotal = totalPrice.toString();
+
+      await checkoutCart(user!.id, activeStore!.id);
+      
+      // Pass data directly to receipt to avoid DB lookup failures
+      router.replace({
+        pathname: '/(customer)/receipt',
+        params: { orderId, totalAmount: finalTotal, items: finalItems }
+      });
 
     } catch (err: any) {
       Alert.alert("Verification Failed", err.message);
@@ -129,7 +136,7 @@ export default function CheckoutScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
         <TouchableOpacity 
           style={[styles.payBtn, { backgroundColor: colors.primary, opacity: loading ? 0.7 : 1 }]}
           onPress={handlePayment}
@@ -154,6 +161,6 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: 20, padding: 20, borderRadius: 16, borderWidth: 1, elevation: 1 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   divider: { borderBottomWidth: 1, marginVertical: 12 },
-  footer: { padding: 20, paddingBottom: 40, borderTopWidth: 1, borderTopColor: '#E5E7EB', backgroundColor: '#FFF' },
+  footer: { padding: 20, paddingBottom: 40, borderTopWidth: 1 },
   payBtn: { height: 56, borderRadius: 12, justifyContent: 'center', alignItems: 'center', elevation: 2 }
 });

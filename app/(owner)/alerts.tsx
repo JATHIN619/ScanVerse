@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -15,79 +15,118 @@ export default function AlertsScreen() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<any[]>([]);
 
+  // Modal State
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<{ id: string, name: string, currentStock: number } | null>(null);
+  const [restockAmount, setRestockAmount] = useState('');
+
+  const fetchAlerts = async () => {
+    if (!user?.id) return;
+    setLoading(true);
+
+    try {
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (storeData) {
+        const { data: productsData, error } = await supabase
+          .from('products')
+          .select('id, name, stock_qty, low_stock_threshold')
+          .eq('store_id', storeData.id)
+          .order('stock_qty', { ascending: true });
+          
+        if (error) throw error;
+
+        if (productsData) {
+          // Filter dynamically based on each item's specific threshold
+          const filteredAlerts = productsData.filter(p => p.stock_qty <= p.low_stock_threshold);
+          setAlerts(filteredAlerts);
+        }
+      }
+    } catch (err) {
+      console.error("Alerts Fetch Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
-
-      async function fetchAlerts() {
-        if (!user) return;
-        setLoading(true);
-
-        const { data: storeData } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('owner_id', user.id)
-          .single();
-
-        if (storeData) {
-          // Note: In a massive enterprise app, you would write an RPC to compare columns server-side.
-          // For this scale, fetching the catalog and filtering in-memory is acceptable.
-          const { data: productsData, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('store_id', storeData.id);
-            
-          if (error) {
-            console.error("Error fetching products for alerts:", error);
-          } else if (isActive && productsData) {
-            // Filter strictly for items at or below their specific threshold
-            const lowStockItems = productsData.filter(p => p.stock_qty <= p.low_stock_threshold);
-            setAlerts(lowStockItems);
-          }
-        }
-        
-        if (isActive) setLoading(false);
-      }
-
       fetchAlerts();
-      return () => { isActive = false; };
     }, [user])
   );
 
-  const renderAlert = ({ item }: { item: any }) => (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.error }]}>
-      <View style={styles.alertHeader}>
-        <Ionicons name="warning" size={24} color={colors.error} />
-        <Text style={[styles.alertTitle, { color: colors.error }]}>Restock Required</Text>
-      </View>
-      
-      <Text style={[styles.productName, { color: colors.textPrimary }]}>{item.name}</Text>
-      <Text style={{ color: colors.textSecondary, marginBottom: 12 }}>Barcode: {item.barcode}</Text>
-      
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Current Stock</Text>
-          <Text style={[styles.statValue, { color: colors.error }]}>{item.stock_qty}</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Warning Threshold</Text>
-          <Text style={[styles.statValue, { color: colors.textPrimary }]}>{item.low_stock_threshold}</Text>
-        </View>
-      </View>
+  const openRestockModal = (product: any) => {
+    setSelectedProduct({ id: product.id, name: product.name, currentStock: product.stock_qty });
+    setRestockAmount(''); // Clear previous input
+    setModalVisible(true);
+  };
 
-      <TouchableOpacity 
-        style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-        onPress={() => router.push('/(owner)/inventory')}
-      >
-        <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Manage Inventory</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const executeRestock = async () => {
+    const amount = parseInt(restockAmount, 10);
+    
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Invalid Input", "Please enter a valid number greater than 0.");
+      return;
+    }
+
+    if (!selectedProduct) return;
+
+    const newStock = selectedProduct.currentStock + amount;
+
+    // Update database
+    const { error } = await supabase
+      .from('products')
+      .update({ stock_qty: newStock })
+      .eq('id', selectedProduct.id);
+
+    if (error) {
+      Alert.alert("Error", "Failed to restock item.");
+    } else {
+      // Remove from alerts UI instantly
+      setAlerts(prev => prev.filter(a => a.id !== selectedProduct.id));
+      setModalVisible(false);
+    }
+  };
+
+  const renderAlertCard = ({ item }: { item: any }) => {
+    const isOutOfStock = item.stock_qty === 0;
+
+    return (
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: isOutOfStock ? '#ef4444' : '#f59e0b' }]}>
+        <View style={styles.iconBox}>
+          <Ionicons name={isOutOfStock ? "warning" : "alert-circle"} size={32} color={isOutOfStock ? "#ef4444" : "#f59e0b"} />
+        </View>
+        
+        <View style={styles.cardInfo}>
+          <Text style={[styles.productName, { color: colors.textPrimary }]}>{item.name}</Text>
+          <Text style={{ color: isOutOfStock ? '#ef4444' : '#f59e0b', fontWeight: 'bold', fontSize: 14 }}>
+            {isOutOfStock ? 'OUT OF STOCK' : `LOW STOCK: ${item.stock_qty} left`}
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Threshold: {item.low_stock_threshold}</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.restockBtn, { backgroundColor: colors.primary }]}
+          onPress={() => openRestockModal(item)}
+        >
+          <Ionicons name="cube" size={16} color="#FFF" />
+          <Text style={{ color: '#FFF', fontWeight: 'bold', marginLeft: 4, fontSize: 12 }}>Restock</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>System Alerts</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Action Alerts</Text>
+        <View style={[styles.badge, { backgroundColor: alerts.length > 0 ? '#ef4444' : colors.primary }]}>
+          <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{alerts.length}</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -102,25 +141,75 @@ export default function AlertsScreen() {
         <FlatList
           data={alerts}
           keyExtractor={(item) => item.id}
-          renderItem={renderAlert}
+          renderItem={renderAlertCard}
           contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Dynamic Restock Modal */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Restock Inventory</Text>
+            <Text style={{ color: colors.textSecondary, marginBottom: 16 }}>
+              How many units of <Text style={{ fontWeight: 'bold', color: colors.textPrimary }}>{selectedProduct?.name}</Text> are you adding?
+            </Text>
+            
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.textPrimary }]}
+              keyboardType="numeric"
+              placeholder="e.g. 24"
+              placeholderTextColor={colors.textSecondary}
+              value={restockAmount}
+              onChangeText={setRestockAmount}
+              autoFocus
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: colors.background }]} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: 'bold' }}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: colors.primary }]} 
+                onPress={executeRestock}
+              >
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, paddingTop: 60 },
-  header: { marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: 'bold' },
-  card: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 16 },
-  alertHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  alertTitle: { fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 },
-  productName: { fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
-  statsRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
-  statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.03)', padding: 12, borderRadius: 8 },
-  statValue: { fontSize: 24, fontWeight: 'bold', marginTop: 4 },
-  actionBtn: { paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 100 }
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  title: { fontSize: 28, fontWeight: 'bold', marginRight: 12 },
+  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  card: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
+  iconBox: { marginRight: 16 },
+  cardInfo: { flex: 1 },
+  productName: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
+  restockBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8 },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 100 },
+  
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '100%', padding: 24, borderRadius: 16, elevation: 5 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
+  input: { borderWidth: 1, borderRadius: 8, padding: 16, fontSize: 18, marginBottom: 24, textAlign: 'center' },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  modalBtn: { flex: 1, padding: 16, borderRadius: 8, alignItems: 'center' }
 });
