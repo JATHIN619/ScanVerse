@@ -2,8 +2,6 @@
 
 ScanVerse is a dual-role full-stack e-commerce engine designed to eliminate checkout queues and prevent retail shrinkage. It features an interactive customer self-checkout flow and an advanced Business Intelligence dashboard for store owners, protected by a physical AI verification layer.
 
-![ScanVerse Poster](scanverse_poster_screenshot_placeholder.jpg)
-*(Note: Upload your generated A3 poster image to the repo and rename it to `scanverse_poster_screenshot_placeholder.jpg` to render it here).*
 
 ## 🚀 Key Features
 *   **Dynamic Cart & Bundle Engine:** Calculates multi-item promotional knapsack discounts in real-time.
@@ -23,10 +21,11 @@ ScanVerse is a dual-role full-stack e-commerce engine designed to eliminate chec
    ```bash
    npm install --legacy-peer-deps
 3. Create a .env file in the root directory with the following keys:
-      EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-      EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-      EXPO_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key
-      EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_key
+   ```Code snippet
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key  EXPO_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key
+   EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_key
 4. Start the Expo development server:
-      npx expo start
+   ```bash
+   npx expo start
 5. Database: Execute supabase_schema.sql in your Supabase SQL editor to provision the relational tables, vector extensions, and custom RPC analytics functions.
