@@ -23,7 +23,8 @@ ScanVerse is a dual-role full-stack e-commerce engine designed to eliminate chec
 3. Create a .env file in the root directory with the following keys:
    ```Code snippet
    EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key  EXPO_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   EXPO_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key
    EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_key
 4. Start the Expo development server:
    ```bash
